@@ -1,0 +1,67 @@
+{
+  "name": "@webhookrelay/eve-channel",
+  "version": "0.1.0",
+  "description": "Webhook Relay message channel for durable eve agents",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "format": "prettier --write src test example README.md package.json tsconfig.json tsup.config.ts",
+    "prepack": "npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "eve",
+    "agent",
+    "webhook",
+    "webhooks",
+    "webhookrelay",
+    "durable-delivery",
+    "throttling"
+  ],
+  "homepage": "https://webhookrelay.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/webhookrelay/eve-agent.git"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@webhookrelay/sdk": "^0.2.0"
+  },
+  "peerDependencies": {
+    "eve": ">=0.24.0"
+  },
+  "devDependencies": {
+    "@ai-sdk/openai-compatible": "^3.0.10",
+    "@types/node": "^22.15.0",
+    "ai": "^7.0.26",
+    "eve": "^0.24.1",
+    "prettier": "^3.6.0",
+    "tsup": "^8.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0",
+    "zod": "^4.0.0"
+  }
+}
