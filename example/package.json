@@ -2,6 +2,9 @@
   "name": "eve-webhookrelay-example",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "eve dev",
     "provision": "tsx provision.ts"
