@@ -58,16 +58,20 @@ restarts. A Relay HTTP output retries when Eve is unavailable; once Eve returns
 ## Example
 
 The complete Lightning-backed Eve app is in [`example/`](example/). Copy
-`.env.example` to `.env`, set `RELAY_API_KEY`, `EVE_PUBLIC_URL`, and the model
-key, then run:
+`.env.example` to `example/.env`, set `RELAY_API_KEY`, `EVE_PUBLIC_URL`, and the
+model key, then run:
 
 ```bash
-npx eve dev
-npx tsx example/provision.ts
+cd example
+npm install
+npm run dev
+# in another shell
+npm run provision
 ```
 
-The model example uses Lightning's OpenAI-compatible endpoint and accepts both
-`LIGHTNING_API_KEY` and the existing `LIGTNING_API_KEY` spelling.
+The model example uses Lightning's OpenAI-compatible endpoint, maps Eve/AI
+SDK's `max_tokens` request to Lightning's `max_completion_tokens`, and accepts
+both `LIGHTNING_API_KEY` and the existing `LIGTNING_API_KEY` spelling.
 
 ## API notes
 

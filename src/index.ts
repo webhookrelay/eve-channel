@@ -4,7 +4,6 @@ import type {
   BucketAuth,
   CreateOutputParams,
   Headers,
-  WebhookEvent,
 } from "@webhookrelay/sdk";
 
 export interface WebhookRelayChannelOptions {
@@ -355,5 +354,3 @@ function validUrl(value: string, label: string): string {
     throw new Error(`${label} must be an absolute http(s) URL`);
   }
 }
-
-export type { WebhookEvent };

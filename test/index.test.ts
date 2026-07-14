@@ -24,13 +24,11 @@ function fakeRelay(overrides: Record<string, unknown> = {}) {
         .mockReturnValue("https://hooks.webhookrelay.com/input-1"),
     },
     outputs: {
-      create: vi
-        .fn()
-        .mockResolvedValue({
-          id: "output-1",
-          name: "eve",
-          destination: "https://agent.example.com/webhookrelay",
-        }),
+      create: vi.fn().mockResolvedValue({
+        id: "output-1",
+        name: "eve",
+        destination: "https://agent.example.com/webhookrelay",
+      }),
     },
   } as any;
 }
