@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { provisionWebhookRelay, webhookRelayChannel } from "../src/index.js";
+import {
+  provisionWebhookRelay,
+  startWebhookRelayWorker,
+  webhookRelayChannel,
+} from "../src/index.js";
 
 function fakeRelay(overrides: Record<string, unknown> = {}) {
   const bucket = {
@@ -127,6 +131,65 @@ describe("provisionWebhookRelay", () => {
         relay,
       }),
     ).rejects.toThrow("refusing to overwrite it");
+  });
+
+  it("creates an internal output for private pull delivery", async () => {
+    const relay = fakeRelay();
+
+    await provisionWebhookRelay({
+      bucket: "eve-demo",
+      delivery: "private-pull",
+      relay,
+    });
+
+    expect(relay.outputs.create).toHaveBeenCalledWith("bucket-1", {
+      name: "eve",
+      destination: "http://localhost",
+      internal: true,
+    });
+  });
+});
+
+describe("startWebhookRelayWorker", () => {
+  it("forwards a pulled webhook to the local Eve route", async () => {
+    const listen = vi.fn().mockImplementation(async (onWebhook) => {
+      await onWebhook({
+        id: "webhook-1",
+        method: "POST",
+        body: '{"message":"hello"}',
+        headers: { "content-type": ["application/json"] },
+      });
+    });
+    const stop = vi.fn();
+    const relay = {
+      webhooks: { poll: vi.fn().mockReturnValue({ listen, stop }) },
+    } as any;
+    const fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(null, { status: 202 }));
+
+    const worker = startWebhookRelayWorker({
+      relay,
+      bucket: "bucket-1",
+      output: "output-1",
+      endpoint: "http://127.0.0.1:2000/webhookrelay",
+      sharedSecret: "secret",
+    });
+    await worker.done;
+
+    expect(relay.webhooks.poll).toHaveBeenCalledWith(
+      expect.objectContaining({ bucket: "bucket-1", output: "output-1" }),
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      "http://127.0.0.1:2000/webhookrelay",
+      expect.objectContaining({
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: "Bearer secret",
+        },
+      }),
+    );
   });
 });
 

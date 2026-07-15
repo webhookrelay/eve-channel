@@ -22,8 +22,10 @@ export interface WebhookRelayChannelOptions {
 }
 
 export interface ProvisionWebhookRelayOptions extends WebhookRelayChannelOptions {
-  /** Public URL of the Eve route, for example https://agent.example.com/webhookrelay. */
-  readonly endpoint: string;
+  /** Public Eve URL for HTTP delivery; omit this for private-pull delivery. */
+  readonly endpoint?: string;
+  /** HTTP output or an outbound durable pull worker for private machines. */
+  readonly delivery?: "http" | "private-pull";
   /** Optional bucket-level authentication for the provider-facing input. */
   readonly bucketAuth?: BucketAuth;
   /** Response returned immediately to the webhook sender. */
@@ -38,6 +40,30 @@ export interface ProvisionWebhookRelayOptions extends WebhookRelayChannelOptions
   >;
   /** Reuse an injected SDK client, useful for tests or custom Relay endpoints. */
   readonly relay?: WebhookRelay;
+}
+
+export interface WebhookRelayWorkerOptions {
+  /** Bucket id or account-unique name to consume. */
+  readonly bucket: string;
+  /** Output id or name created with `delivery: "private-pull"`. */
+  readonly output: string;
+  /** Eve route reachable from the worker, normally http://127.0.0.1:2000/webhookrelay. */
+  readonly endpoint: string;
+  /** Must match the secret configured on the Eve channel. */
+  readonly sharedSecret?: string;
+  /** Reuse an injected SDK client, useful for tests or custom Relay endpoints. */
+  readonly relay?: WebhookRelay;
+  /** Delay between empty queue polls. */
+  readonly intervalMs?: number;
+  /** Called when the worker cannot forward an event to Eve. */
+  readonly onError?: (error: unknown) => void;
+}
+
+export interface WebhookRelayWorker {
+  /** Stop polling and resolve `done` after the current request finishes. */
+  stop(): void;
+  /** Completes when the worker is stopped or encounters a forwarding error. */
+  done: Promise<void>;
 }
 
 export interface ProvisionWebhookRelayResult {
@@ -161,7 +187,11 @@ export async function provisionWebhookRelay(
   options: ProvisionWebhookRelayOptions,
 ): Promise<ProvisionWebhookRelayResult> {
   const relay = options.relay ?? new WebhookRelay();
-  const endpoint = validUrl(options.endpoint, "endpoint");
+  const delivery = options.delivery ?? "http";
+  const endpoint =
+    delivery === "http"
+      ? validUrl(options.endpoint ?? "", "endpoint")
+      : "http://localhost";
   const inputName = options.input ?? DEFAULT_INPUT;
   const outputName = options.output ?? DEFAULT_OUTPUT;
   const response = options.response ?? {};
@@ -201,19 +231,30 @@ export async function provisionWebhookRelay(
   );
   let outputCreated = false;
   if (output) {
-    if (output.destination && output.destination !== outputDestination) {
+    const isPrivateOutput =
+      output.internal === true || output.destination === "http://localhost";
+    if (
+      (delivery === "http" &&
+        output.destination &&
+        output.destination !== outputDestination) ||
+      (delivery === "private-pull" && !isPrivateOutput)
+    ) {
       throw new Error(
-        `Relay output "${outputName}" already points to ${output.destination}; refusing to overwrite it.`,
+        `Relay output "${outputName}" is not configured for ${delivery} delivery; refusing to overwrite it.`,
       );
     }
   } else {
-    const headers = mergeOutputHeaders(
-      options.outputOptions?.headers,
-      options.sharedSecret,
-    );
+    const headers =
+      delivery === "http"
+        ? mergeOutputHeaders(
+            options.outputOptions?.headers,
+            options.sharedSecret,
+          )
+        : undefined;
     output = await relay.outputs.create(bucket.id, {
       name: outputName,
       destination: outputDestination,
+      ...(delivery === "private-pull" ? { internal: true } : {}),
       ...(headers ? { headers } : {}),
       ...(options.outputOptions?.description
         ? { description: options.outputOptions.description }
@@ -239,6 +280,56 @@ export async function provisionWebhookRelay(
     bucketCreated,
     inputCreated,
     outputCreated,
+  };
+}
+
+/**
+ * Keep a private Eve process fed from Relay over an outbound pull connection.
+ * The worker never opens an inbound listener; only its local POST to Eve is
+ * required. The pull queue is durable until an event is handed to this worker.
+ */
+export function startWebhookRelayWorker(
+  options: WebhookRelayWorkerOptions,
+): WebhookRelayWorker {
+  const relay = options.relay ?? new WebhookRelay();
+  const controller = new AbortController();
+  const poller = relay.webhooks.poll({
+    bucket: options.bucket,
+    output: options.output,
+    intervalMs: options.intervalMs,
+    signal: controller.signal,
+  });
+
+  const done = poller.listen(
+    async (webhook) => {
+      const headers = flattenHeaders(webhook.headers);
+      if (options.sharedSecret) {
+        headers.authorization = `Bearer ${options.sharedSecret}`;
+      }
+
+      const method = webhook.method ?? "POST";
+      const response = await fetch(validUrl(options.endpoint, "endpoint"), {
+        method,
+        headers,
+        body: ["GET", "HEAD"].includes(method)
+          ? undefined
+          : (webhook.body ?? ""),
+      });
+      if (!response.ok) {
+        throw new Error(
+          `Eve returned HTTP ${response.status} for webhook ${webhook.id}`,
+        );
+      }
+    },
+    (error) => options.onError?.(error),
+  );
+
+  return {
+    stop() {
+      controller.abort();
+      poller.stop();
+    },
+    done,
   };
 }
 
@@ -343,6 +434,13 @@ function mergeOutputHeaders(
   const result = headers ? { ...headers } : {};
   if (sharedSecret) result.authorization = [`Bearer ${sharedSecret}`];
   return Object.keys(result).length > 0 ? result : undefined;
+}
+
+function flattenHeaders(headers: Headers | undefined): Record<string, string> {
+  if (!headers) return {};
+  return Object.fromEntries(
+    Object.entries(headers).map(([name, values]) => [name, values.join(", ")]),
+  );
 }
 
 function validUrl(value: string, label: string): string {
