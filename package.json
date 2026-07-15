@@ -21,7 +21,9 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "npm run test:unit",
+    "test:unit": "vitest run test/index.test.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "format": "prettier --write src test example README.md package.json tsconfig.json tsup.config.ts",
     "prepack": "npm run build"
   },

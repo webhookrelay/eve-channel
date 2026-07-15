@@ -197,4 +197,18 @@ npm run typecheck
 npm run build
 ```
 
+## CI
+
+GitHub Actions runs unit/build checks on every push and pull request. The live
+Relay suite runs on pushes to `main` when the repository has this GitHub Secret:
+
+```text
+RELAY_API_KEY
+```
+
+The workflow creates the marked `e2e-eve-agent` bucket, runs sequential, burst,
+and consumer-failure recovery tests one event at a time, then removes all test
+resources. The secret is injected through `${{ secrets.RELAY_API_KEY }}` and is
+never committed to the repository.
+
 MIT License.

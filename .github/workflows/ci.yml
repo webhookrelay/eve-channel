@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  relay-integration:
+    name: Relay durable delivery E2E
+    if: github.event_name == 'push'
+    needs: checks
+    runs-on: ubuntu-latest
+    env:
+      RELAY_API_KEY: ${{ secrets.RELAY_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Run live Relay integration tests
+        if: env.RELAY_API_KEY != ''
+        run: npm run test:integration
+      - name: Skip live Relay integration tests without credentials
+        if: env.RELAY_API_KEY == ''
+        run: echo "RELAY_API_KEY GitHub Secret is not configured; skipping live Relay tests."
