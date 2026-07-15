@@ -198,44 +198,4 @@ npm run build
 npm run pack:check
 ```
 
-## Publishing
-
-The package is published as `@webhookrelay/eve-channel` from GitHub Actions
-when a matching version tag is pushed. For example:
-
-```bash
-npm version patch
-git push origin main --follow-tags
-```
-
-Before the first release, configure npm Trusted Publishing in the package
-settings at npmjs.com:
-
-| Setting | Value |
-| --- | --- |
-| Provider | GitHub Actions |
-| Organization/user | `webhookrelay` |
-| Repository | `eve-channel` |
-| Workflow filename | `publish.yml` |
-| Allowed action | `npm publish` |
-
-The workflow uses OIDC and does not require an npm token in GitHub Secrets.
-The scoped package is explicitly published with public access and receives npm
-provenance when the repository and package are public. Check the contents
-locally with `npm run pack:check` before creating a release.
-
-## CI
-
-GitHub Actions runs unit/build checks on every push and pull request. The live
-Relay suite runs on pushes to `main` when the repository has this GitHub Secret:
-
-```text
-RELAY_API_KEY
-```
-
-The workflow creates the marked `e2e-eve-agent` bucket, runs sequential, burst,
-and consumer-failure recovery tests one event at a time, then removes all test
-resources. The secret is injected through `${{ secrets.RELAY_API_KEY }}` and is
-never committed to the repository.
-
 MIT License.
