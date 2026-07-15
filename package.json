@@ -24,6 +24,7 @@
     "test": "npm run test:unit",
     "test:unit": "vitest run test/index.test.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "pack:check": "npm pack --dry-run",
     "format": "prettier --write src test example README.md package.json tsconfig.json tsup.config.ts",
     "prepack": "npm run build"
   },

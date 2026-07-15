@@ -195,7 +195,34 @@ instead. The model example maps AI SDK’s `max_tokens` to Lightning’s require
 npm test
 npm run typecheck
 npm run build
+npm run pack:check
 ```
+
+## Publishing
+
+The package is published as `@webhookrelay/eve-channel` from GitHub Actions
+when a matching version tag is pushed. For example:
+
+```bash
+npm version patch
+git push origin main --follow-tags
+```
+
+Before the first release, configure npm Trusted Publishing in the package
+settings at npmjs.com:
+
+| Setting | Value |
+| --- | --- |
+| Provider | GitHub Actions |
+| Organization/user | `webhookrelay` |
+| Repository | `eve-agent` |
+| Workflow filename | `publish.yml` |
+| Allowed action | `npm publish` |
+
+The workflow uses OIDC and does not require an npm token in GitHub Secrets.
+The scoped package is explicitly published with public access and receives npm
+provenance when the repository and package are public. Check the contents
+locally with `npm run pack:check` before creating a release.
 
 ## CI
 
