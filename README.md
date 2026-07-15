@@ -215,7 +215,7 @@ settings at npmjs.com:
 | --- | --- |
 | Provider | GitHub Actions |
 | Organization/user | `webhookrelay` |
-| Repository | `eve-agent` |
+| Repository | `eve-channel` |
 | Workflow filename | `publish.yml` |
 | Allowed action | `npm publish` |
 

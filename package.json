@@ -43,7 +43,7 @@
   "homepage": "https://webhookrelay.com",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/webhookrelay/eve-agent.git"
+    "url": "git+https://github.com/webhookrelay/eve-channel.git"
   },
   "license": "MIT",
   "publishConfig": {
